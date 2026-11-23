@@ -1,0 +1,70 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-11-23T07:24:20.963026+00:00",
+    "component": {
+      "name": "astra-pinaka-cash-apps",
+      "version": "1.0.0-rc1",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "publisher": "Pinaka AI"
+    }
+  },
+  "components": [
+    {
+      "name": "fastapi",
+      "version": "0.115.0",
+      "license": "MIT",
+      "scope": "apps/api"
+    },
+    {
+      "name": "pydantic",
+      "version": "2.10.0",
+      "license": "MIT",
+      "scope": "apps/api"
+    },
+    {
+      "name": "uvicorn",
+      "version": "0.32.0",
+      "license": "BSD-3-Clause",
+      "scope": "apps/api"
+    },
+    {
+      "name": "defusedxml",
+      "version": "0.7.1",
+      "license": "PSF-2.0",
+      "scope": "integrations/bank"
+    },
+    {
+      "name": "scikit-learn",
+      "version": "1.6.0",
+      "license": "BSD-3-Clause",
+      "scope": "ml"
+    },
+    {
+      "name": "numpy",
+      "version": "2.1.0",
+      "license": "BSD-3-Clause",
+      "scope": "ml"
+    },
+    {
+      "name": "next",
+      "version": "15.1.0",
+      "license": "MIT",
+      "scope": "apps/web"
+    },
+    {
+      "name": "react",
+      "version": "19.0.0",
+      "license": "MIT",
+      "scope": "apps/web"
+    }
+  ]
+}

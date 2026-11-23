@@ -1,0 +1,73 @@
+{
+  "evaluation_scope": "synthetic_ci_benchmark_not_production_claim",
+  "cohort_size": 2000,
+  "arms": {
+    "rules_only": {
+      "eligible_receipts_denominator": 2000,
+      "auto_posted_total": 1740,
+      "auto_posted_correct": 1740,
+      "correct_auto_match_rate": 0.87,
+      "correct_auto_match_95_ci": [
+        0.85455,
+        0.88403
+      ],
+      "auto_post_precision": 1.0,
+      "auto_post_precision_95_ci": [
+        0.9978,
+        1.0
+      ],
+      "total_correct_resolution_rate": 0.875,
+      "false_positive_dollars_at_risk_minor": 0,
+      "total_eval_time_ms": 75.09,
+      "per_receipt_avg_ms": 0.0375
+    },
+    "rules_plus_ml": {
+      "eligible_receipts_denominator": 2000,
+      "auto_posted_total": 1740,
+      "auto_posted_correct": 1740,
+      "correct_auto_match_rate": 0.87,
+      "correct_auto_match_95_ci": [
+        0.85455,
+        0.88403
+      ],
+      "auto_post_precision": 1.0,
+      "auto_post_precision_95_ci": [
+        0.9978,
+        1.0
+      ],
+      "total_correct_resolution_rate": 1.0,
+      "false_positive_dollars_at_risk_minor": 0,
+      "total_eval_time_ms": 74.11,
+      "per_receipt_avg_ms": 0.0371
+    },
+    "rules_plus_ml_plus_context": {
+      "eligible_receipts_denominator": 2000,
+      "auto_posted_total": 1940,
+      "auto_posted_correct": 1940,
+      "correct_auto_match_rate": 0.97,
+      "correct_auto_match_95_ci": [
+        0.96158,
+        0.97662
+      ],
+      "auto_post_precision": 1.0,
+      "auto_post_precision_95_ci": [
+        0.99802,
+        1.0
+      ],
+      "total_correct_resolution_rate": 1.0,
+      "false_positive_dollars_at_risk_minor": 0,
+      "total_eval_time_ms": 148.04,
+      "per_receipt_avg_ms": 0.074
+    }
+  },
+  "gates": {
+    "auto_match_ge_96_pct": true,
+    "precision_ge_99_5_pct": true,
+    "zero_false_positive_dollars": true
+  },
+  "hypotheses_tested": {
+    "H1_context_agents_lift_over_static_rules": 0.125,
+    "H2_100_pct_decisions_carry_evidence_pointers": true,
+    "H4_short_pay_and_unapplied_accurately_separated": true
+  }
+}

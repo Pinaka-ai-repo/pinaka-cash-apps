@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-11-23T07:24:20.963838+00:00",
+  "passed": true,
+  "hooks_installed": [],
+  "working_tree_leaks": [],
+  "git_history_leaks": [],
+  "sast_issues": [],
+  "control_matrix": {
+    "valid": true,
+    "count": 47,
+    "expected_count": 47,
+    "non_passing": [],
+    "missing_evidence": []
+  },
+  "sbom_path": "docs/security/sbom.json",
+  "repo_fingerprint_sha256": "eec397068988b58272c30c5250aec482e73bcca659c73fb0cdccf4b7f40abb79"
+}

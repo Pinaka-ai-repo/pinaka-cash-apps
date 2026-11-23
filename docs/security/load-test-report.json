@@ -1,0 +1,14 @@
+{
+  "simultaneous_authenticated_users": 110,
+  "total_operations": 1100,
+  "unique_receipts_created": 110,
+  "duplicate_replay_leaks": 0,
+  "read_p95_ms": 120.1657,
+  "read_p95_target_ms": 500.0,
+  "review_action_p95_ms": 59.2184,
+  "review_action_p95_target_ms": 2000.0,
+  "error_rate": 0.0,
+  "total_wall_time_ms": 960.4,
+  "audit_chain_verified": true,
+  "passed": true
+}

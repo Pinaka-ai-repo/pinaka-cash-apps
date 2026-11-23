@@ -1,0 +1,41 @@
+name: ASTRA Security, Ledger & Evaluation Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# SEC-37: Least-privilege read-only default permissions
+permissions:
+  contents: read
+
+jobs:
+  verify-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Run Zero-AWS-Leak, SAST, SBOM & 47-Control Verifier (SEC-34..SEC-37)
+        run: python scripts/verify_security.py
+
+      - name: Run Full Unit, Ledger, ERP Contract & 47 Security Gate Tests
+        env:
+          PYTHONPATH: .
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Run 2,000-Receipt Cohort Evaluation Harness
+        env:
+          PYTHONPATH: .
+        run: python ml/eval/harness.py
+
+      - name: Run 110-Concurrent-User Load & Idempotency Harness
+        env:
+          PYTHONPATH: .
+        run: python scripts/load_test.py

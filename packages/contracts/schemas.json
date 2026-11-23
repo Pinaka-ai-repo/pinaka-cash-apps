@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ASTRA Canonical Contracts v1",
+  "version": "1.0.0",
+  "$defs": {
+    "MoneyMinorV1": {
+      "type": "object",
+      "required": ["amount_minor", "currency", "exponent"],
+      "additionalProperties": false,
+      "properties": {
+        "amount_minor": { "type": "integer" },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "exponent": { "type": "integer", "enum": [0, 2, 3] }
+      }
+    },
+    "OpenItemSnapshotV1": {
+      "type": "object",
+      "required": ["item_id", "tenant_id", "legal_entity_id", "customer_id", "invoice_number", "currency", "original_amount_minor", "open_amount_minor", "due_date", "snapshot_version", "as_of"],
+      "additionalProperties": false,
+      "properties": {
+        "item_id": { "type": "string" },
+        "tenant_id": { "type": "string" },
+        "legal_entity_id": { "type": "string" },
+        "customer_id": { "type": "string" },
+        "invoice_number": { "type": "string" },
+        "po_number": { "type": ["string", "null"] },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "original_amount_minor": { "type": "integer", "minimum": 0 },
+        "open_amount_minor": { "type": "integer" },
+        "discount_terms_bps": { "type": "integer", "minimum": 0, "maximum": 10000 },
+        "discount_due_date": { "type": ["string", "null"] },
+        "due_date": { "type": "string" },
+        "snapshot_version": { "type": "integer", "minimum": 1 },
+        "as_of": { "type": "string" }
+      }
+    },
+    "PostingIntentV1": {
+      "type": "object",
+      "required": ["posting_intent_id", "idempotency_key", "tenant_id", "legal_entity_id", "receipt_id", "erp_target", "posting_period", "currency", "receipt_total_minor", "applied_total_minor", "unapplied_cash_minor", "fee_minor", "allocations", "preparer_id", "approver_id", "policy_version"],
+      "additionalProperties": false,
+      "properties": {
+        "posting_intent_id": { "type": "string" },
+        "idempotency_key": { "type": "string" },
+        "tenant_id": { "type": "string" },
+        "legal_entity_id": { "type": "string" },
+        "receipt_id": { "type": "string" },
+        "erp_target": { "type": "string", "enum": ["sap_s4hana", "oracle_fusion", "netsuite", "odoo", "sage_intacct", "universal_rest_csv"] },
+        "posting_period": { "type": "string", "pattern": "^\\d{4}-\\d{2}$" },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "receipt_total_minor": { "type": "integer", "minimum": 0 },
+        "applied_total_minor": { "type": "integer", "minimum": 0 },
+        "unapplied_cash_minor": { "type": "integer", "minimum": 0 },
+        "fee_minor": { "type": "integer", "minimum": 0 },
+        "allocations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["item_id", "invoice_number", "applied_minor", "residual_minor", "reason_code"],
+            "additionalProperties": false,
+            "properties": {
+              "item_id": { "type": "string" },
+              "invoice_number": { "type": "string" },
+              "applied_minor": { "type": "integer", "minimum": 0 },
+              "discount_applied_minor": { "type": "integer", "minimum": 0 },
+              "residual_minor": { "type": "integer", "minimum": 0 },
+              "reason_code": { "type": "string" }
+            }
+          }
+        },
+        "preparer_id": { "type": "string" },
+        "approver_id": { "type": ["string", "null"] },
+        "policy_version": { "type": "string" }
+      }
+    },
+    "ERPAcknowledgmentV1": {
+      "type": "object",
+      "required": ["ack_id", "posting_intent_id", "idempotency_key", "erp_target", "external_document_number", "status", "acknowledged_at"],
+      "additionalProperties": false,
+      "properties": {
+        "ack_id": { "type": "string" },
+        "posting_intent_id": { "type": "string" },
+        "idempotency_key": { "type": "string" },
+        "erp_target": { "type": "string" },
+        "external_document_number": { "type": "string" },
+        "status": { "type": "string", "enum": ["posted", "posting_failed", "duplicate_ignored"] },
+        "error_code": { "type": ["string", "null"] },
+        "acknowledged_at": { "type": "string" }
+      }
+    },
+    "DeductionCaseV1": {
+      "type": "object",
+      "required": ["case_id", "tenant_id", "legal_entity_id", "customer_id", "receipt_id", "invoice_number", "currency", "received_minor", "open_minor", "residual_minor", "taxonomy_version", "extracted_stated_reason", "predicted_reason", "confidence", "evidence_locators", "approved_route", "external_status"],
+      "additionalProperties": false,
+      "properties": {
+        "case_id": { "type": "string" },
+        "tenant_id": { "type": "string" },
+        "legal_entity_id": { "type": "string" },
+        "customer_id": { "type": "string" },
+        "receipt_id": { "type": "string" },
+        "invoice_number": { "type": "string" },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "received_minor": { "type": "integer", "minimum": 0 },
+        "open_minor": { "type": "integer", "minimum": 0 },
+        "residual_minor": { "type": "integer", "minimum": 1 },
+        "taxonomy_version": { "type": "string" },
+        "extracted_stated_reason": { "type": ["string", "null"] },
+        "predicted_reason": {
+          "type": "string",
+          "enum": ["contractual_discount", "pricing", "freight", "damage", "promo", "returns", "tax_withholding", "duplicate_or_disputed", "bank_fees", "unknown", "mixed"]
+        },
+        "classifier_source": { "type": "string", "enum": ["deterministic_rules", "local_ml_baseline", "laya_v0_5_2"] },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "prediction_set": { "type": "array", "items": { "type": "string" } },
+        "abstain": { "type": "boolean" },
+        "evidence_locators": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "approved_route": { "type": "string", "enum": ["pending_review", "dispute_investigation", "contract_discount_verified", "approved_adjustment"] },
+        "risk_snapshot_ref": { "type": ["string", "null"] },
+        "external_status": { "type": "string", "enum": ["draft", "queued_outbox", "synced_external", "resolved"] }
+      }
+    },
+    "RiskSnapshotV1": {
+      "type": "object",
+      "required": ["snapshot_id", "tenant_id", "legal_entity_id", "customer_key", "scope", "as_of", "expires_at", "predicted_delay_days", "delay_probability", "label_definition", "model_version", "reason_codes", "explanations", "availability"],
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_id": { "type": "string" },
+        "tenant_id": { "type": "string" },
+        "legal_entity_id": { "type": "string" },
+        "customer_key": { "type": "string" },
+        "scope": { "type": "string" },
+        "as_of": { "type": "string" },
+        "expires_at": { "type": "string" },
+        "predicted_delay_days": { "type": "integer", "minimum": 0 },
+        "delay_probability": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "label_definition": { "type": "string" },
+        "model_version": { "type": "string" },
+        "reason_codes": { "type": "array", "items": { "type": "string" } },
+        "explanations": { "type": "array", "items": { "type": "string" } },
+        "evidence_refs": { "type": "array", "items": { "type": "string" } },
+        "availability": { "type": "string", "enum": ["fresh_mock", "fresh_sandbox", "stale", "unavailable"] }
+      }
+    },
+    "AnswerV1": {
+      "type": "object",
+      "required": ["answer_id", "tenant_id", "legal_entity_id", "status", "as_of", "sections", "claims", "evidence_ids"],
+      "additionalProperties": false,
+      "properties": {
+        "answer_id": { "type": "string" },
+        "tenant_id": { "type": "string" },
+        "legal_entity_id": { "type": "string" },
+        "status": { "type": "string", "enum": ["answered", "partial", "insufficient_evidence"] },
+        "as_of": { "type": "string" },
+        "sections": { "type": "array", "items": { "type": "string" } },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["claim_text", "claim_type", "evidence_id", "numeric_value_minor"],
+            "additionalProperties": false,
+            "properties": {
+              "claim_text": { "type": "string" },
+              "claim_type": { "type": "string", "enum": ["observation", "metric_aggregation", "prediction"] },
+              "evidence_id": { "type": "string" },
+              "numeric_value_minor": { "type": ["integer", "null"] }
+            }
+          }
+        },
+        "evidence_ids": { "type": "array", "items": { "type": "string" } },
+        "proposed_report_spec": { "type": ["object", "null"] }
+      }
+    },
+    "ReportSpecV1": {
+      "type": "object",
+      "required": ["report_id", "version", "tenant_id", "legal_entity_id", "title", "metric_ids", "filters", "date_window", "groupings", "visualization", "destination", "timezone"],
+      "additionalProperties": false,
+      "properties": {
+        "report_id": { "type": "string" },
+        "version": { "type": "integer", "minimum": 1 },
+        "tenant_id": { "type": "string" },
+        "legal_entity_id": { "type": "string" },
+        "title": { "type": "string" },
+        "metric_ids": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "filters": { "type": "object" },
+        "date_window": { "type": "string" },
+        "groupings": { "type": "array", "items": { "type": "string" } },
+        "visualization": { "type": "string", "enum": ["table", "waterfall", "aging_buckets", "forecast_13w", "bridge"] },
+        "destination": { "type": "string", "enum": ["in_app", "approved_email_allowlist"] },
+        "timezone": { "type": "string" },
+        "schedule_cron": { "type": ["string", "null"] }
+      }
+    },
+    "AgentPaymentDecisionV1": {
+      "type": "object",
+      "required": ["payment_id", "payer", "amount", "extracted_references", "corrections_applied", "proposed_allocations", "overall_confidence", "decision", "exception_type", "rationale", "evidence", "next_actions"],
+      "additionalProperties": false,
+      "properties": {
+        "payment_id": { "type": "string" },
+        "payer": {
+          "type": "object",
+          "required": ["name", "customer_id", "confidence"],
+          "properties": {
+            "name": { "type": "string" },
+            "customer_id": { "type": ["string", "null"] },
+            "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+          }
+        },
+        "amount": {
+          "type": "object",
+          "required": ["value", "amount_minor", "currency"],
+          "properties": {
+            "value": { "type": "number" },
+            "amount_minor": { "type": "integer" },
+            "currency": { "type": "string", "pattern": "^[A-Z]{3}$" }
+          }
+        },
+        "extracted_references": { "type": "array" },
+        "corrections_applied": { "type": "array" },
+        "proposed_allocations": { "type": "array" },
+        "overall_confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "decision": { "type": "string", "enum": ["auto_post", "review", "exception", "hold"] },
+        "exception_type": { "type": ["string", "null"] },
+        "rationale": { "type": "string" },
+        "evidence": { "type": "array", "items": { "type": "string" } },
+        "next_actions": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+  <BkToCstmrStmt>
+    <GrpHdr>
+      <MsgId>MSG-ASTRA-SYNTH-20261123</MsgId>
+      <CreDtTm>2026-11-23T06:00:00Z</CreDtTm>
+    </GrpHdr>
+    <Stmt>
+      <Id>STMT-US-CORP-01-20261123</Id>
+      <Acct>
+        <Id>
+          <IBAN>US00ASTRA000000004821</IBAN>
+        </Id>
+      </Acct>
+      <Ntry>
+        <Amt Ccy="USD">42500.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <ValDt>
+          <Dt>2026-11-23</Dt>
+        </ValDt>
+        <AcctSvcrRef>CAMT-E2E-99012</AcctSvcrRef>
+        <NtryDtls>
+          <TxDtls>
+            <Refs>
+              <EndToEndId>CAMT-E2E-99012</EndToEndId>
+            </Refs>
+            <RltdPties>
+              <Dbtr>
+                <Nm>Apex Precision Manufacturing Corp</Nm>
+              </Dbtr>
+            </RltdPties>
+            <RmtInf>
+              <Ustrd>Settlement for invoice INV-100104 in full</Ustrd>
+            </RmtInf>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="USD">18500.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <ValDt>
+          <Dt>2026-11-23</Dt>
+        </ValDt>
+        <AcctSvcrRef>CAMT-E2E-99013</AcctSvcrRef>
+        <NtryDtls>
+          <TxDtls>
+            <Refs>
+              <EndToEndId>CAMT-E2E-99013</EndToEndId>
+            </Refs>
+            <RltdPties>
+              <Dbtr>
+                <Nm>Northstar Logistics LLC</Nm>
+              </Dbtr>
+            </RltdPties>
+            <RmtInf>
+              <Ustrd>Check stub OCR ref INV-1OO2I9</Ustrd>
+            </RmtInf>
+          </TxDtls>
+        </NtryDtls>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>

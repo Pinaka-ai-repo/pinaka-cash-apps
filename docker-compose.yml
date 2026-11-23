@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: astra
+      POSTGRES_PASSWORD: astra_local_dev_only
+      POSTGRES_DB: astra
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./apps/api/migrations/001_initial_astra_schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      ASTRA_ENV: development
+      ASTRA_EXECUTION_POLICY: local-no-egress
+      ASTRA_BANNER_MODE: DEMO
+      DATABASE_URL: postgresql://astra:astra_local_dev_only@postgres:5432/astra
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["python", "-m", "apps.api.astra.seed_demo"]
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      ASTRA_ENV: development
+      ASTRA_EXECUTION_POLICY: local-no-egress
+    depends_on:
+      - api
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M

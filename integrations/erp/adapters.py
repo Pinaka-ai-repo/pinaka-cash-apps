@@ -106,15 +106,24 @@ class MultiERPMockServer:
     """Offline Multi-ERP Contract & Sandbox Emulator for SAP S/4HANA, Oracle, NetSuite, Odoo, Sage, and Universal."""
 
     def __init__(self) -> None:
-        self._posted_by_idempotency: dict[tuple[str, str], dict[str, Any]] = {}
+        self._posted_by_idempotency: dict[tuple[str, str, str, str], dict[str, Any]] = {}
 
-    def query_by_idempotency_key(self, erp_target: str, idempotency_key: str) -> dict[str, Any] | None:
-        """Queried after timeout/ambiguity before retrying any ERP posting."""
-        return self._posted_by_idempotency.get((erp_target, idempotency_key))
+    def query_by_idempotency_key(
+        self,
+        erp_target: str,
+        idempotency_key: str,
+        *,
+        tenant_id: str = "*",
+        legal_entity_id: str = "*",
+    ) -> dict[str, Any] | None:
+        """Queried after timeout/ambiguity before retrying any ERP posting (scoped by tenant and legal entity)."""
+        return self._posted_by_idempotency.get((tenant_id, legal_entity_id, erp_target, idempotency_key))
 
     def submit_posting(self, erp_target: str, intent: dict[str, Any], native_payload: dict[str, Any]) -> dict[str, Any]:
         idem = intent["idempotency_key"]
-        existing = self.query_by_idempotency_key(erp_target, idem)
+        t_id = str(intent.get("tenant_id", "*"))
+        le_id = str(intent.get("legal_entity_id", "*"))
+        existing = self.query_by_idempotency_key(erp_target, idem, tenant_id=t_id, legal_entity_id=le_id)
         if existing is not None:
             dup = dict(existing)
             dup["status"] = "duplicate_ignored"
@@ -133,6 +142,8 @@ class MultiERPMockServer:
             "ack_id": f"ack-{uuid.uuid4().hex[:10]}",
             "posting_intent_id": intent["posting_intent_id"],
             "idempotency_key": idem,
+            "tenant_id": t_id,
+            "legal_entity_id": le_id,
             "erp_target": erp_target,
             "external_document_number": f"{prefix}-2026-{len(self._posted_by_idempotency) + 1001}",
             "status": "posted",
@@ -140,7 +151,7 @@ class MultiERPMockServer:
             "acknowledged_at": datetime.now(timezone.utc).isoformat(),
             "native_format_verified": native_payload.get("format_type", "REST_JSON"),
         }
-        self._posted_by_idempotency[(erp_target, idem)] = ack
+        self._posted_by_idempotency[(t_id, le_id, erp_target, idem)] = ack
         return ack
 
 
@@ -353,7 +364,14 @@ class OpenERPConnectorHub:
 
     def post_to_erp(self, erp_target: str, intent: dict[str, Any]) -> dict[str, Any]:
         """Queries external idempotency key first (safe retry after timeout), then submits to ERP."""
-        existing = self.mock_server.query_by_idempotency_key(erp_target, intent["idempotency_key"])
+        t_id = str(intent.get("tenant_id", "*"))
+        le_id = str(intent.get("legal_entity_id", "*"))
+        existing = self.mock_server.query_by_idempotency_key(
+            erp_target,
+            intent["idempotency_key"],
+            tenant_id=t_id,
+            legal_entity_id=le_id,
+        )
         if existing is not None:
             dup = dict(existing)
             dup["status"] = "duplicate_ignored"
@@ -361,8 +379,14 @@ class OpenERPConnectorHub:
         native_payload = self.build_native_erp_payload(erp_target, intent)
         return self.mock_server.submit_posting(erp_target, intent, native_payload)
 
+    @staticmethod
+    def _csv_safe(val: Any) -> Any:
+        if isinstance(val, str) and (val.startswith(("=", "+", "-", "@", "\t", "\r")) or val.lstrip(" \t\r\n").startswith(("=", "+", "-", "@"))):
+            return "'" + val
+        return val
+
     def export_erp_posting_csv_with_control_totals(self, erp_target: str, intents: list[dict[str, Any]]) -> str:
-        """Generates an approved, versioned ERP batch posting CSV with header & trailer control totals."""
+        """Generates an approved, versioned ERP batch posting CSV with header & trailer control totals (SEC-29 formula-safe)."""
         buf = io.StringIO()
         writer = csv.writer(buf, lineterminator="\n")
         writer.writerow([
@@ -389,18 +413,18 @@ class OpenERPConnectorHub:
                 line_count += 1
                 writer.writerow([
                     "LINE",
-                    erp_target,
-                    intent["posting_intent_id"],
-                    intent["idempotency_key"],
-                    intent["legal_entity_id"],
-                    intent["receipt_id"],
+                    self._csv_safe(erp_target),
+                    self._csv_safe(intent["posting_intent_id"]),
+                    self._csv_safe(intent["idempotency_key"]),
+                    self._csv_safe(intent["legal_entity_id"]),
+                    self._csv_safe(intent["receipt_id"]),
                     "UNAPPLIED",
-                    intent["currency"],
+                    self._csv_safe(intent["currency"]),
                     0,
                     0,
                     intent["unapplied_cash_minor"],
-                    intent["preparer_id"],
-                    intent["approver_id"],
+                    self._csv_safe(intent["preparer_id"]),
+                    self._csv_safe(intent["approver_id"]),
                 ])
             for idx, alloc in enumerate(intent["allocations"]):
                 line_count += 1
@@ -409,18 +433,18 @@ class OpenERPConnectorHub:
                 unapp = int(intent["unapplied_cash_minor"]) if idx == 0 else 0
                 writer.writerow([
                     "LINE",
-                    erp_target,
-                    intent["posting_intent_id"],
-                    intent["idempotency_key"],
-                    intent["legal_entity_id"],
-                    intent["receipt_id"],
-                    alloc["invoice_number"],
-                    intent["currency"],
+                    self._csv_safe(erp_target),
+                    self._csv_safe(intent["posting_intent_id"]),
+                    self._csv_safe(intent["idempotency_key"]),
+                    self._csv_safe(intent["legal_entity_id"]),
+                    self._csv_safe(intent["receipt_id"]),
+                    self._csv_safe(alloc["invoice_number"]),
+                    self._csv_safe(intent["currency"]),
                     applied,
                     alloc.get("discount_applied_minor", 0),
                     unapp,
-                    intent["preparer_id"],
-                    intent["approver_id"],
+                    self._csv_safe(intent["preparer_id"]),
+                    self._csv_safe(intent["approver_id"]),
                 ])
         writer.writerow([
             "CONTROL_TOTAL",

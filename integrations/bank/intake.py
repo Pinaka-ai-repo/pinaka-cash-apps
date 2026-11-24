@@ -118,11 +118,13 @@ def verify_attachment_sandbox(
             f"SEC-19 violation: Binary executable or compressed archive header blocked in '{filename}'."
         )
 
-    text_preview = payload_bytes[:65536].decode("utf-8", errors="ignore")
-    if "<!DOCTYPE" in text_preview.upper() or "<!ENTITY" in text_preview.upper():
+    # Scan full decoded payload (up to max_bytes) so padding beyond 64 KiB cannot conceal XXE or raw PANs
+    full_text = payload_bytes.decode("utf-8", errors="ignore")
+    upper_text = full_text.upper()
+    if "<!DOCTYPE" in upper_text or "<!ENTITY" in upper_text:
         raise AttachmentQuarantineError("SEC-19 violation: XML DTD / Entity expansion (XXE) declaration blocked.")
 
-    if contains_raw_pan(text_preview):
+    if contains_raw_pan(full_text):
         raise AttachmentQuarantineError(
             "SEC-19/PCI violation: Raw credit card PAN detected in attachment; quarantined at boundary."
         )
@@ -267,7 +269,10 @@ def verify_virtual_card_settlement(
     """Section 5.1 & SEC-19: Verifies virtual-card settlement inside a PCI-safe token-only boundary."""
     if not (spf_pass and dkim_pass):
         raise AttachmentQuarantineError("VCC intake rejected: SPF/DKIM authentication failed.")
-    domain = sender_email.split("@")[-1].strip().lower()
+    local_part, sep, raw_domain = sender_email.strip().partition("@")
+    domain = raw_domain.strip().lower()
+    if not sep or not local_part or not domain or "@" in domain:
+        raise AttachmentQuarantineError(f"VCC intake rejected: Malformed sender email '{sender_email}'.")
     if domain not in {d.lower() for d in allowed_processor_domains}:
         raise AttachmentQuarantineError(f"VCC intake rejected: Sender domain '{domain}' not in processor allowlist.")
     if contains_raw_pan(processor_token_ref) or contains_raw_pan(raw_remittance_note):

@@ -89,6 +89,7 @@ ROLE_PERMISSIONS: dict[str, set[str]] = {
         "security:kill_switch",
         "security:secret_rotate",
         "user:offboard",
+        "user:grant_role",
         "audit:read",
     },
     "internal_auditor": {
@@ -167,7 +168,8 @@ class SecurityController:
         self._offboarded_users.add(target_user_id)
 
     def grant_role(self, actor: Principal, target_user_id: str, current_roles: tuple[str, ...], new_role: str) -> tuple[str, ...]:
-        """SEC-09: Admin cannot grant themselves an incompatible finance role."""
+        """SEC-06 / SEC-09: Only authorized security_admin can grant roles, and never to themselves or incompatible pairs."""
+        self.authorize(actor, "user:grant_role", actor.tenant_id, actor.allowed_legal_entities[0])
         if actor.user_id == target_user_id:
             raise AuthorizationError("SEC-09 violation: Self-grant of roles is prohibited.")
         updated = tuple(sorted(set(current_roles) | {new_role}))

@@ -41,7 +41,7 @@ class MailConnectorService:
         self._contacts = dict(approved_customer_contacts or {})
         self._suppression = {e.lower() for e in (suppression_list or set())}
         self._drafts: dict[tuple[str, str, str], dict[str, Any]] = {}
-        self._sent_by_idempotency: dict[str, dict[str, Any]] = {}
+        self._sent_by_idempotency: dict[tuple[str, str, str], dict[str, Any]] = {}
 
     @staticmethod
     def verify_scope_isolation(provider: str, direction: str, granted_scopes: set[str]) -> bool:
@@ -104,8 +104,10 @@ class MailConnectorService:
         idempotency_key: str,
     ) -> dict[str, Any]:
         """SEC-09 / SEC-46: Enforces human Maker-Checker approval before dispatching to local mail sink."""
-        if idempotency_key in self._sent_by_idempotency:
-            return copy.deepcopy(self._sent_by_idempotency[idempotency_key])
+        self.security.authorize(approver, "mail:approve", tenant_id, legal_entity_id)
+        scoped_idem = (tenant_id, legal_entity_id, idempotency_key)
+        if scoped_idem in self._sent_by_idempotency:
+            return copy.deepcopy(self._sent_by_idempotency[scoped_idem])
 
         key = (tenant_id, legal_entity_id, draft_id)
         if key not in self._drafts:
@@ -129,7 +131,7 @@ class MailConnectorService:
             "idempotency_key": idempotency_key,
         }
         self._drafts[key] = sent
-        self._sent_by_idempotency[idempotency_key] = sent
+        self._sent_by_idempotency[scoped_idem] = sent
 
         self.audit.append(
             tenant_id=tenant_id,

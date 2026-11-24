@@ -648,6 +648,90 @@ class TestAstra47SecurityControlsAndGivenWhenThen(unittest.TestCase):
         laya_res = run_laya_spike_evaluation()
         self.assertTrue(laya_res["meets_plus_3pp_promotion_bar"])
 
+    def test_security_audit_skill_regression_fixes(self) -> None:
+        # 1. grant_role requires security_admin privilege (analyst cannot grant roles)
+        with self.assertRaises(AuthorizationError):
+            self.sec.grant_role(self.analyst, "usr-other", ("analyst",), "treasury")
+
+        # 2. MailConnectorService enforces auth before idempotency lookup & scopes idempotency by tenant/entity
+        mail = MailConnectorService(
+            self.sec,
+            self.audit,
+            approved_customer_contacts={("T1", "US-01", "C-1"): "ap@c1.example.com"},
+        )
+        draft = mail.preview_and_draft_message(
+            self.analyst,
+            tenant_id="T1",
+            legal_entity_id="US-01",
+            customer_id="C-1",
+            provider="gmail",
+            template_id="tpl-1",
+            receipt_id="R-1",
+            reason_summary="Short-pay",
+        )
+        mail.approve_and_send_to_sink(
+            self.controller,
+            tenant_id="T1",
+            legal_entity_id="US-01",
+            draft_id=draft["draft_id"],
+            idempotency_key="shared-mail-idem",
+        )
+        # Analyst or cross-tenant caller replaying the same idempotency_key must be rejected
+        with self.assertRaises(AuthorizationError):
+            mail.approve_and_send_to_sink(
+                self.analyst,
+                tenant_id="T1",
+                legal_entity_id="US-01",
+                draft_id=draft["draft_id"],
+                idempotency_key="shared-mail-idem",
+            )
+        t2_controller = Principal("usr-ctrl-t2", "T2", ("US-01",), ("controller",), step_up_verified=True)
+        with self.assertRaises(KeyError):
+            mail.approve_and_send_to_sink(
+                t2_controller,
+                tenant_id="T2",
+                legal_entity_id="US-01",
+                draft_id=draft["draft_id"],
+                idempotency_key="shared-mail-idem",
+            )
+
+        # 3. Attachment XXE/PAN scanner inspects beyond 64 KiB padding & VCC rejects multi-@ sender emails
+        padded_pan = (b" " * 70000) + b"Card: 4532015112830366"
+        with self.assertRaises(AttachmentQuarantineError):
+            verify_attachment_sandbox(padded_pan, filename="padded.txt", mime_type="text/plain")
+
+        with self.assertRaises(AttachmentQuarantineError):
+            verify_virtual_card_settlement(
+                sender_email="evil@attacker.com@stripe-vcc.example.com",
+                spf_pass=True,
+                dkim_pass=True,
+                allowed_processor_domains={"stripe-vcc.example.com"},
+                processor_token_ref="VCC-TOK-9901",
+                raw_remittance_note="Clean note",
+                expected_amount_minor=1000,
+                actual_amount_minor=1000,
+            )
+
+        # 4. ERP batch CSV export neutralizes formula injection & isolates idempotency across tenants
+        erp_hub = OpenERPConnectorHub()
+        csv_out = erp_hub.export_erp_posting_csv_with_control_totals(
+            "sap_s4hana",
+            [{
+                "posting_intent_id": "pi-1",
+                "idempotency_key": "=CMD|' /C calc'!A0",
+                "tenant_id": "T1",
+                "legal_entity_id": "US-01",
+                "receipt_id": "rcpt-1",
+                "currency": "USD",
+                "unapplied_cash_minor": 0,
+                "preparer_id": "usr-analyst-1",
+                "approver_id": "usr-controller-1",
+                "allocations": [{"invoice_number": "+SUM(1,1)", "applied_minor": 1000, "discount_applied_minor": 0}],
+            }],
+        )
+        self.assertIn("'=CMD|' /C calc'!A0", csv_out)
+        self.assertIn("'+SUM(1,1)", csv_out)
+
 
 if __name__ == "__main__":
     unittest.main()

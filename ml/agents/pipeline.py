@@ -228,7 +228,7 @@ class ClosedLearningLoop:
     def __init__(self, security: SecurityController, required_confirmations: int = 3) -> None:
         self.security = security
         self.required_confirmations = required_confirmations
-        self._observation_counts: dict[tuple[str, str, str], int] = {}
+        self._observation_counts: dict[tuple[str, str, str, str, str], int] = {}
         self._candidates: dict[str, dict[str, Any]] = {}
         self._active_rules_history: list[dict[str, dict[str, str]]] = [{}]
 
@@ -244,12 +244,15 @@ class ClosedLearningLoop:
         historical_open_invoices: set[str],
     ) -> dict[str, Any]:
         self.security.authorize(analyst, "match:propose", tenant_id, legal_entity_id)
-        obs_key = (customer_id, raw_token.upper(), corrected_invoice_or_alias.upper())
+        obs_key = (tenant_id, legal_entity_id, customer_id, raw_token.upper(), corrected_invoice_or_alias.upper())
         self._observation_counts[obs_key] = self._observation_counts.get(obs_key, 0) + 1
         count = self._observation_counts[obs_key]
 
         regression_passed = corrected_invoice_or_alias.upper() in historical_open_invoices
-        cand_id = f"rule-{customer_id}-{raw_token.upper()}"
+        cand_id = f"rule-{tenant_id}-{legal_entity_id}-{customer_id}-{raw_token.upper()}"
+        prev_cand = self._candidates.get(cand_id)
+        preparer_ids = set(prev_cand["preparer_ids"]) if prev_cand and "preparer_ids" in prev_cand else set()
+        preparer_ids.add(analyst.user_id)
         status = "ready_for_controller_approval" if (count >= self.required_confirmations and regression_passed) else "accumulating"
 
         cand = {
@@ -263,6 +266,7 @@ class ClosedLearningLoop:
             "required_confirmations": self.required_confirmations,
             "regression_passed": regression_passed,
             "preparer_id": analyst.user_id,
+            "preparer_ids": sorted(preparer_ids),
             "status": status,
             "version": len(self._active_rules_history),
         }
@@ -280,13 +284,14 @@ class ClosedLearningLoop:
         if candidate_id not in self._candidates:
             raise KeyError(f"Learning candidate '{candidate_id}' not found.")
         cand = self._candidates[candidate_id]
-        self.security.enforce_maker_checker(
-            preparer_id=cand["preparer_id"],
-            approver=approver,
-            action="learning:approve",
-            tenant_id=cand["tenant_id"],
-            legal_entity_id=cand["legal_entity_id"],
-        )
+        for prep_id in cand.get("preparer_ids", [cand["preparer_id"]]):
+            self.security.enforce_maker_checker(
+                preparer_id=prep_id,
+                approver=approver,
+                action="learning:approve",
+                tenant_id=cand["tenant_id"],
+                legal_entity_id=cand["legal_entity_id"],
+            )
         if cand["confirmations"] < self.required_confirmations or not cand["regression_passed"]:
             raise ValueError(
                 f"SEC-45 violation: Cannot promote rule with confirmations={cand['confirmations']} (<{self.required_confirmations}) or failed regression."

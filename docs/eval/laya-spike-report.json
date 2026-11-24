@@ -26,8 +26,8 @@
     "macro_f1": 0.697,
     "high_risk_precision": 1.0,
     "abstention_rate": 0.5455,
-    "total_latency_ms": 0.74,
-    "per_item_latency_ms": 0.0067,
+    "total_latency_ms": 0.797,
+    "per_item_latency_ms": 0.0072,
     "per_class": {
       "contractual_discount": {
         "precision": 1.0,
@@ -90,8 +90,8 @@
     "macro_f1": 1.0,
     "high_risk_precision": 1.0,
     "abstention_rate": 0.2273,
-    "total_latency_ms": 1.314,
-    "per_item_latency_ms": 0.0119,
+    "total_latency_ms": 0.953,
+    "per_item_latency_ms": 0.0087,
     "per_class": {
       "contractual_discount": {
         "precision": 1.0,

@@ -512,6 +512,9 @@ class AstraLedgerStore:
         if self.kill_switches["connectors_disabled"]:
             raise RuntimeError("SEC-33 kill-switch active: ERP connectors are disabled.")
 
+        # Authorize caller before inspecting idempotency cache so unprivileged callers cannot probe cached intents
+        self.security.authorize(approver, "posting:approve", tenant_id, legal_entity_id)
+
         idem_key = (tenant_id, legal_entity_id, idempotency_key)
         if idem_key in self._posting_intents:
             return copy.deepcopy(self._posting_intents[idem_key]), False
